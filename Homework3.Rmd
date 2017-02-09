@@ -1,0 +1,219 @@
+---
+title: "Homework3"
+author: "Melissa Greenaway"
+date: "February 5, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("R:/Project/EPAR/Working Files/RA Working Folders/Melissa G/R and Python")
+
+```
+
+## R Markdown
+
+If you have this function:
+
+```{r }
+riseToPower=function(base,exponent=2){
+  #####
+  result=1
+  if (exponent > 0){
+    for (time in 1:exponent){ #number of times to repeat process
+      result=result*base
+    }
+  }
+  #####
+  return(result)
+}
+```
+
+We can create another function to deal with values that are negative:
+
+```{r }
+riseToPowerPlus=function(base,exponent=2){
+  #####
+  result=1
+  if (exponent > 0){
+    for (time in 1:exponent){ #number of times to repeat process
+      result=result*base
+    }
+  } 
+  if (exponent < 0){
+    for (time in 1:(-exponent)){
+      result=result*base
+      result=1/result
+    }
+  }
+  #####
+  return(result)
+}
+riseToPowerPlus(4,-1)
+```
+
+This function lets us use one input to retrieve several output elements:
+```{r}
+factors=function(number){
+  vectorOfAnswers=c() # empty vector that will collect output
+  for (i in 1:number){
+    #if the remainder of 'number'/'i' equals zero...
+    if ((number %% i) == 0){ # %% gives remainder
+      # ...add 'i' to the vector of factors!
+      vectorOfAnswers=c(vectorOfAnswers,i)
+    }
+  }
+  return (vectorOfAnswers) # returning  the vector
+}
+factors(20) #testing
+```
+
+But there's a way we can modify it to reduce the number of iterations in the loop -
+with large numbers we may have to iterate many times.
+```{r}
+factors=function(number){
+  vectorOfAnswers=c(number) # empty vector that will collect output
+  for (i in 1:(number/2)){
+    #if the remainder of 'number'/'i' equals zero...
+    if ((number %% i) == 0){ 
+      # ...add 'i' to the vector of factors!
+      vectorOfAnswers=c(i, vectorOfAnswers)
+    }
+  }
+  return (vectorOfAnswers) # returning  the vector
+}
+
+factors(20)
+```
+
+We can also avoid negative numbers or zeros as input by modifying the code:
+```{r}
+factors1=function(number){
+  vectorOfAnswers1=c() # empty vector that will collect output
+  if (number>0){
+    for (i in 1:number){ #change this
+      #if the remainder of 'number'/'i' equals zero...
+      if ((number %% i) == 0){ # %% gives remainder
+       # ...add 'i' to the vector of factors!
+       vectorOfAnswers1=c(vectorOfAnswers1,i)
+    }
+  }
+  }
+  if (number<=0){
+    print ("invalid number")
+    return(NA)
+  }
+  return (vectorOfAnswers1) # returning  the vector
+}
+factors1(20)
+factors1(-20)
+```
+
+We can also change the code to only accept positive integer values, and make sure an
+error message results for an invalid number.
+```{r}
+factors2=function(number){
+  if (number<=0){
+    print("invalid number was input")
+    return(NA)
+  }
+  if (number>0){
+    vectorOfAnswers=c() # empty vector that will collect output
+    if (is.integer(number)){
+      for (i in 1:(number/2)){ #change this
+        #if the remainder of 'number'/'i' equals zero...
+        if ((number %% i) == 0){ # %% gives remainder
+        # ...add 'i' to the vector of factors!
+        vectorOfAnswers=c(i,vectorOfAnswers)
+      }
+    }
+    }else if (!is.integer(number)){
+      print ("invalid number was input")
+      return(NA)
+  }
+  }
+  return (vectorOfAnswers) # returning  the vector
+}
+factors2(1.2)
+factors2(-18)
+```
+
+We can also use vectors as inputs for functions, and have data frames as outputs. The function
+below uses two vectors as input, and returns a data frame with additional columns.
+```{r}
+operations=function(aVector, avector2){
+  #vector of sum
+  sumvector=c()
+  sumvector=c(sumvector, aVector+avector2)
+  #vector of difference
+  diffvector=c()
+  diffvector=c(diffvector, aVector-avector2)
+  #multiple vector
+  multvector=c()
+  multvector=c(multvector, aVector*avector2)
+  #div vector
+  divvector=c()
+  divvector=c(divvector, aVector/avector2)
+  answerasdf=data.frame(vector1=aVector, vector2=avector2, sum=sumvector, diff=diffvector, multiple=multvector, division=divvector)
+  answerasdf
+}
+vectorx=c(10,20,30,40,50)
+vectory=c(20,40,60,80,100)
+operations(vectorx, vectory)
+```
+
+Finally, if we have unknown functions we can explore how they can be applied to different parts of a data frame, including a cell, column, and the data frame as a whole.
+```{r}
+# The function:
+strangerF=function(x){
+  answer=0
+  change=T
+  for (value in x){
+    if (change){
+      answer=answer+value
+    }else{
+      answer=answer-value
+    }
+    change=!change 
+  }
+  return (answer)
+}
+```
+
+Exploration:
+```{r}
+#import data
+#install.packages("readx1")
+#library(readxl) # you only need to do this once per session
+folderName='Data'
+fileName='dataforstrangeF.csv'
+fileExcel=file.path(folderName,fileName)
+strangedata=read.csv(fileExcel,1) # table '1'
+strangedata
+#browse data
+str(strangedata)
+
+#strangerF(strangedata) # cannot apply directly to data frame
+#strangerF(strangedata$vals1)
+strangerF(strangedata$vals2) # this works! Applying to a single column of integers
+strangerF(strangedata$vals3) # this works! Applying to a single column of integers
+
+#Map(strangerF,strangedata$vals1) # doesn't work
+Map(strangerF,strangedata$vals2) #works for column of integers, returns list
+#mapply(strangerF,strangedata) # doesn't work
+#mapply(strangerF,strangedata$vals1) # doesn't work
+mapply(strangerF,strangedata$vals3) #works for column of integers, returns vector
+
+integer=function(x){ # I created this function to see if a filter for data type will work
+  if (is.integer(x)){
+    return(TRUE)
+  }else{
+    return(FALSE)}
+}
+Filter(integer,strangedata) #filtering for datatype works
+
+#apply(strangedata,1,strangerF) # 1 for row, doesn't work
+#apply(strangedata,2,strangerF) # 2 for column, doesn't work
+#lapply(strangedata,strangerF) # doesn't work
+```
+

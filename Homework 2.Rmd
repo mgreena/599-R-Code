@@ -1,0 +1,128 @@
+---
+title: "Homework2"
+author: "Melissa Greenaway"
+date: "February 5, 2017"
+output: html_document
+---
+First, import the data from your directory:
+```{r }
+#install.packages("readx1")
+library(readxl) # you only need to do this once per session
+folderName='Data'
+fileName='cities.xlsx'
+fileExcel=file.path(folderName,fileName)
+cities=read_excel(fileExcel,1)
+cities
+```
+
+## R Markdown
+Now, we'll use for and if loops to get the same information about city visits.
+
+First: Which city had the most visits in 2015?
+
+
+```{r}
+mostVisits=0
+
+for (visits2015 in cities$visits2015){
+  if (is.na(visits2015)){
+    print("missing value!")
+    next
+  }
+  if (!is.na(visits2015) & visits2015>=0){
+    if (mostVisits<visits2015){
+      mostVisits=visits2015
+      print(mostVisits)
+      }
+  }
+}
+
+mostVisits
+cities[cities$visits2015==mostVisits,]$city
+```
+
+Which city from Asia had the least visits in 2013?
+
+
+```{r}
+leastvisits=100
+leastvisits
+numRows=nrow(cities)
+numCols=ncol(cities)
+positionsLV=c()
+countLV=0
+
+for (position in 1:numRows){
+  if (cities[position,'region']=='Asia'){
+    visits2013 = cities[position,'visits2013']
+  }
+  if (is.na(visits2013)){
+    print("missing value")
+    next
+  }
+  if (!is.na(visits2013) & cities[position,'region']=='Asia'){
+    visits2013 = cities[position,'visits2013']
+    if (leastvisits>visits2013){
+      leastvisits=visits2013
+    }
+  }
+}
+
+for (position in 1:numRows){
+  if (cities[position,'region']=='Asia'){
+    visits2013=cities[position,'visits2013']
+  }
+  if(!is.na(visits2013) & cities[position,'region']=='Asia'){
+    if (leastvisits==visits2013){
+      countLV=countLV+1
+      positionsLV=c(positionsLV,position)
+    }
+  }
+}
+
+leastvisits
+countLV
+positionsLV
+cities[positionsLV,]
+```
+
+What are the three least visited cities in Asia in 2015?
+```{r}
+leastvisits=2e9
+positionsLV=c()
+cities2=cities
+numRows=nrow(cities2)
+numCols=ncol(cities2)
+minpos=NA
+
+
+for (time in 1:3){
+  for (position in 1:numRows){
+    if (cities2[position,'region']=='Asia'){
+      
+      if(is.finite(cities2$visits2015[position])){
+        visits2015 = cities2[position,'visits2015']
+        if (leastvisits>visits2015){
+          leastvisits=visits2015
+          countrymin=cities2[position,'city']
+          #minpos=position
+          byevalue=position
+        }
+      }
+    }else{
+      next
+    }
+  }
+  positionsLV=c(positionsLV,countrymin)
+  leastvisits=2e9
+  cities2=cities2[-byevalue,] 
+  numRows=nrow(cities2)
+}
+
+positionsLV
+```
+
+```{r}
+
+```
+

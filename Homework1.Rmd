@@ -1,0 +1,59 @@
+---
+title: "Data Structures in R"
+author: "Melissa Greenaway"
+date: "February 1, 2017"
+output: html_document
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This code outlines queries in data frames in R. The data used represents the number of visits to cities in multiple regions in 2013 and 2015.
+
+```{r setup}
+#Data Frames from Files
+# Installing package for the first time
+#install.packages("readxl")
+# Enabling the package (once per session)
+library(readxl) #allows us to read excel files
+folderName='Data'
+fileName='cities.xlsx'
+fileExcel=file.path(folderName,fileName)
+dataFromExcel=read_excel(fileExcel,1) # table '1'
+#check data structure
+str(dataFromExcel)
+dataFromExcel #shows top 10 most visited cities for two years
+head(dataFromExcel,4) # shows first four rows, use tail for bottom rows
+```
+
+## 
+Which city had the most visits in 2015?
+
+```{r queries1, eval=TRUE}
+dataFromExcel[which.max(dataFromExcel$visits2015),] #which city had most visits in 2015
+```
+
+Which city from Asia had the least visits in 2013?
+
+```{r, eval=TRUE}
+dataFromExcel[which.min(dataFromExcel[dataFromExcel$region=="Asia",]$visits2013),]
+
+```
+
+What are the three least visited cities in Asia in 2015?
+```{r}
+
+keydetail=c("Asia")
+datacopy=dataFromExcel[dataFromExcel$region %in% keydetail,]
+head(datacopy[order(datacopy$visits2015),],3)
+```
+
+What are the most and least visited city in Asia in 2013?
+```{r}
+dataFromExcel[which.max(datacopy$visits2013),]$city #what are the most and least visited cities in Asia in 2013?
+dataFromExcel[which.min(datacopy$visits2013),]$city
+
+```
