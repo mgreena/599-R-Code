@@ -1,0 +1,355 @@
+---
+title: "Data Exploration and Analysis: PUBPOL 599 Goverance Analytics"
+author: "Melissa Greenaway"
+date: "February 27, 2017"
+output: html_document
+---
+First, import the large data set (it will take a few minutes!). The Financial Inclusion Insights (FII) survey is conducted by Intermedia, Inc. in partnership with the Gates Foundation, and asks respondents in 6 countries a series of questions related to their living standards and their use of digital financial services (DFS), like mobile money. This will help researchers and the public understand the progress being made in developing countries towards financial inclusion. 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#set working directory
+setwd("R:/Project/EPAR/Working Files/RA Working Folders/Melissa G/R and Python")
+
+# packages needed for data cleaning, formatting, and analysis
+# install.packages("haven")
+# install.packages("sjmisc")
+# install.packages("survey")
+# install.packages("maptools")
+# install.packages("RColorBrewer")
+# install.packages("classInt")
+# install.packages("scales")
+# install.packages("ggmap")
+
+library(haven)
+folder="Data"
+fileName="Cross_WaveMaster_MG.dta"
+fileToRead=file.path(folder,fileName)
+dataStata=read_dta(fileToRead)
+```
+
+## Trim data set
+
+Now, identify the variables we might be interested in, and create a new data frame with those variables:
+
+```{r Trim data set}
+varsOfInterest=c("weight", "wave","dfs_adopt","urban_rural","employed","phone_own","phone_access","ppi_score","bank_own","age","ppi_cutoff","female","ed_level","literate","numerate","registered_MM","sim_ownoraccess","married","dfs_aware_gen","n_household","country")
+crosswavesub=as.data.frame(dataStata)[varsOfInterest]
+head(crosswavesub)
+```
+
+## Save as R data file
+
+Now we can save the file as an R-data structure, to speed up analysis.
+
+```{r Save as R file}
+save(crosswavesub, file="crosswavesub.RData")
+load("crosswavesub.RData")
+head(crosswavesub)
+```
+## Data Structure
+In viewing the data's structure, we see that each variable is "Atomic", and contains STATA metadata.
+```{r structure of stata data}
+str(crosswavesub)
+
+```
+# Data Cleaning and Formatting
+To begin cleaning, we'll first change all NaNs to "NA"
+```{r removing NAs}
+crosswavesub[crosswavesub=='NaN']=NA # this is an actual change to the data frame
+```
+
+Now we can format the variables:
+```{r Data formatting}
+# Data Formatting package
+library(sjmisc)
+
+#country categories
+labelvar=c(get_labels(crosswavesub$country)) # can save factor labels
+labelvar
+capture.output(to_factor(crosswavesub$country))
+#fix country
+crosswavesub$country=to_label(crosswavesub$country) # this is the command that works
+```
+
+I'm going to change each variable to a factor (they're)
+
+```{r Data formatting 2}
+library(sjmisc)
+levels(crosswavesub$country)
+str(crosswavesub$country)
+#urban rural - These are binary categories
+crosswavesub$urban_rural=to_factor(crosswavesub$urban_rural)
+#employed
+crosswavesub$employed=to_factor(crosswavesub$employed)
+#phone_own
+crosswavesub$phone_own=to_factor(crosswavesub$phone_own)
+#bank_own
+crosswavesub$bank_own=to_factor(crosswavesub$bank_own)
+#ppi_cutoff
+crosswavesub$ppi_cutoff=to_factor(crosswavesub$ppi_cutoff)
+#married
+crosswavesub$married=to_label(crosswavesub$married)
+#literate
+crosswavesub$literate=to_factor(crosswavesub$literate)
+#registered MM
+crosswavesub$registered_MM=to_factor(crosswavesub$registered_MM)
+#sim own or access
+crosswavesub$sim_ownoraccess=to_factor(crosswavesub$sim_ownoraccess)
+#numerate
+crosswavesub$numerate=to_factor(crosswavesub$numerate)
+#dfs adopt
+crosswavesub$dfs_adopt=to_factor(crosswavesub$dfs_adopt) # this is the one
+#wave
+crosswavesub$wave=to_factor(crosswavesub$wave)
+#age
+is.numeric(crosswavesub$age) # making sure it's numeric
+#n_household
+is.numeric(crosswavesub$n_household) # same as above
+# female
+crosswavesub$female=to_factor(crosswavesub$female)
+# Changing ed_level to factor, ordered
+crosswavesub$ed_level=factor(crosswavesub$ed_level,ordered = T)
+str(crosswavesub)
+# changing 
+```
+
+## Subset Data and Set Survey Weights
+
+Create subset of data frames with each wave of data (for mapping of DFS adoption/use) and a subset with each country in wave 3. We also need to set survey weights for each subset of the data.
+```{r Subset/Survey Weights }
+library(survey)
+
+#subset wave one data
+wave1data=subset(crosswavesub,crosswavesub$wave=="1")
+head(wave1data)
+w1weight= svydesign(id=~1, weights=wave1data$weight,data=wave1data)
+
+#subset wave two data
+wave2data=subset(crosswavesub,crosswavesub$wave=="2")
+head(wave2data)
+w2weight= svydesign(id=~1, weights=wave2data$weight,data=wave2data)
+
+#subset wave three data
+wave3data<-subset(crosswavesub,crosswavesub$wave=="3")
+head(wave3data)
+w3weight= svydesign(id=~1, weights=wave3data$weight,data=wave3data)
+
+#subset wave three data by country, for easier analysis
+kenya3data<-subset(wave3data,wave3data$country=="Kenya")
+k3weight= svydesign(id=~1, weights=kenya3data$weight,data=kenya3data)
+
+nig3data<-subset(wave3data,wave3data$country=="Nigeria")
+n3weight= svydesign(id=~1, weights=nig3data$weight,data=nig3data)
+
+ind3data<-subset(wave3data,wave3data$country=="India")
+ind3weight= svydesign(id=~1, weights=ind3data$weight,data=ind3data)
+
+indo3data<-subset(wave3data,wave3data$country=="Indonesia")
+indo3weight= svydesign(id=~1, weights=indo3data$weight,data=indo3data)
+
+tan3data<-subset(wave3data,wave3data$country=="Tanzania")
+t3weight= svydesign(id=~1, weights=tan3data$weight,data=tan3data)
+
+u3data<-subset(wave3data,wave3data$country=="Uganda")
+u3weight= svydesign(id=~1, weights=u3data$weight,data=u3data)
+
+b3data<-subset(wave3data,wave3data$country=="Bangladesh")
+b3weight= svydesign(id=~1, weights=b3data$weight,data=b3data)
+
+p3data<-subset(wave3data,wave3data$country=="Pakistan")
+p3weight= svydesign(id=~1, weights=p3data$weight,data=p3data)
+```
+
+## Data Exploration
+
+With the subsets of data, we can generate weighted proportions of our variables for each country in wave 3:
+```{r wave 3 proportions}
+#WAVE 3
+prop_ed3=svyby(~ed_level, ~country, w3weight, svymean, na.rm = TRUE)
+prop_emp3=svyby(~employed, ~country, w3weight, svymean, na.rm = TRUE)
+prop_bank3=svyby(~bank_own, ~country, w3weight, svymean, na.rm = TRUE)
+prop_marr3=svyby(~married, ~country, w3weight, svymean, na.rm = TRUE)
+prop_lit3=svyby(~literate, ~country, w3weight, svymean, na.rm = TRUE)
+prop_num3=svyby(~numerate, ~country, w3weight, svymean, na.rm = TRUE)
+prop_sim3=svyby(~sim_ownoraccess, ~country, w3weight, svymean, na.rm = TRUE)
+prop_marr3=svyby(~married, ~country, w3weight, svymean, na.rm = TRUE) 
+prop_fem3=svyby(~female, ~country, w3weight, svymean, na.rm = TRUE)
+
+prop_ed3 # example
+```
+
+Let's test for differences by education level:
+
+```{r t test ed}
+# education differences, adoption
+tablee <- svytable(~ed_level+country, w3weight)
+tablee
+svychisq(~ed_level+country, w3weight)
+```
+
+Now testing for differences in DFS adoption rates by country:
+```{r t test dfs}
+# test for differences
+table <- svytable(~dfs_adopt+country, w3weight) # cross tab 
+summary(table, statistic="Chisq") # differences present by country
+```
+
+Differences for gender?
+```{r t test gender}
+# gender differences, adoption
+tablef <- svytable(~dfs_adopt+female+country, w3weight)
+tablef
+svychisq(~dfs_adopt+female, w3weight) # over all countries, differences
+```
+
+
+## Plot education levels by country
+
+Plotting education levels by country:
+```{r ed plot}
+table_ed=svytable(~ed_level+country, w3weight)
+legendplot_ed=levels(as.factor(unique(wave3data$ed_level)))
+bartable=table_ed
+barplot(prop_ed3, beside=TRUE, legend=c("No Formal Education", "Primary Education", "Secondary Education and Above"), ylim=c(0,1), col=c("lightblue","darkblue","gray"), main="Proportion of Population at Education Levels Across FII Countries, Wave 3") # plotting proportions
+```
+
+## Plot histogram distributions for age
+
+Plotting age distributions by country
+```{r age plot}
+# all together now
+par(mfrow=c(2,4))
+svyhist(~age, k3weight, main = "Kenya", col="blue", prob=FALSE)
+svyhist(~age, n3weight, main = "Nigeria", col="blue", prob=FALSE)
+svyhist(~age, ind3weight, main = "India", col="blue", prob=FALSE)
+svyhist(~age, t3weight, main = "Tanzania", col="blue", prob=FALSE)
+svyhist(~age, u3weight, main = "Uganda", col="blue", prob=FALSE)
+svyhist(~age, p3weight, main = "Pakistan", col="blue", prob=FALSE)
+svyhist(~age, b3weight, main = "Bangladesh", col="blue", prob=FALSE)
+```
+
+## Calculating average DFS adoption rates
+
+```{r DFS adoption rates}
+# putting means for DFS adoption into separate frame
+#means, wave 1
+means1 <- svyby(~dfs_adopt,~country,design=w1weight,svymean,na.rm=TRUE)
+means1
+
+#means, wave 2
+means2 <- svyby(~dfs_adopt,~country,design=w2weight,svymean,na.rm=TRUE)
+means2
+
+#means, wave 3
+means3 <- svyby(~dfs_adopt, ~country, design = w3weight, svymean, na.rm=TRUE)
+means3
+```
+
+## Aggregating Means together
+
+Preparing average DFS adoption rates data for mapping:
+```{r Prep dfs adoption data}
+## aggregate means data into data frame ##
+names(means2)[names(means2)=="dfs_adopt1"]="dfs_adopt2"
+means2=means2[,c("country","dfs_adopt2")]
+names(means3)[names(means3)=="dfs_adopt1"]="dfs_adopt3"
+means3=means3[,c("country","dfs_adopt3")]
+
+dfs_adopt_means=means1[,c("country","dfs_adopt1")]
+dfs_adopt_means=merge(dfs_adopt_means,means2, by.x="country",by.y="country")
+dfs_adopt_means=merge(dfs_adopt_means,means3, by.x="country", by.y = "country")
+
+#change numbers to percentages
+dfs_adopt_means$dfs_adopt1=dfs_adopt_means$dfs_adopt1*100
+dfs_adopt_means$dfs_adopt2=dfs_adopt_means$dfs_adopt2*100
+dfs_adopt_means$dfs_adopt3=dfs_adopt_means$dfs_adopt3*100
+
+head(dfs_adopt_means)
+```
+
+## Mapping
+
+Import map and prepare to plot data:
+```{r get map}
+# Get Map
+library(maptools)
+folder="Data/TM_WORLD_BORDERS-0.3/"
+fileName="TM_WORLD_BORDERS-0.3.shp"
+fileSHP=file.path(folder,fileName) 
+globalmap =readShapeSpatial(fileSHP) 
+head(globalmap@data)
+plot(globalmap)
+```
+
+Merge map data and DFS adoption rates:
+```{r map merge}
+str(globalmap$NAME)
+str(dfs_adopt_means)
+globalmap =merge(globalmap,dfs_adopt_means,by.x='NAME',by.y='country',all.x=T)
+```
+
+Subset map for the regions with FII countries:
+```{r subset map}
+table(globalmap@data$REGION)
+globalmap@data[,c('NAME','REGION')]
+
+subMap=globalmap[globalmap@data$REGION%in%c('2','142'),]
+```
+
+Map DFS adoption rates by country, Wave 1:
+
+```{r map1}
+# make sure packages are installed
+library(RColorBrewer)
+library(classInt)
+
+# wave 1
+varToPLot=subMap@data$dfs_adopt1
+numberOfClasses = 3
+colorForScale='Greens'
+title='DFS Adoption Rates by Country, Wave 1'
+
+#plotting, wave 1
+colors <- brewer.pal(numberOfClasses, colorForScale)
+intervals <- classIntervals(varToPLot, numberOfClasses, style = "equal",dataPrecision=2)
+colorPallette <- findColours(intervals, colors)
+plot(subMap, col = colorPallette,main=title)
+legend(-65,10, legend = names(attr(colorPallette, "table")), y.intersp=0.5, x.intersp=0.5, fill = attr(colorPallette, "palette"), cex = 0.75, bty = "n")
+
+```
+
+Wave 2:
+```{r map2}
+# wave 2
+varToPLot=subMap@data$dfs_adopt2
+numberOfClasses = 3
+colorForScale='Greens'
+title='DFS Adoption Rates by Country, Wave 2'
+
+#plotting, wave 2
+colors <- brewer.pal(numberOfClasses, colorForScale)
+intervals <- classIntervals(varToPLot, numberOfClasses, style = "equal",dataPrecision=2)
+colorPallette <- findColours(intervals, colors)
+plot(subMap, col = colorPallette,main=title)
+legend(-65,10, legend = names(attr(colorPallette, "table")), y.intersp=0.5, x.intersp=0.5, fill = attr(colorPallette, "palette"), cex = 0.75, bty = "n")
+
+```
+
+Wave 3:
+```{r map3}
+# wave 3
+varToPLot=subMap@data$dfs_adopt3
+numberOfClasses = 3
+colorForScale='Greens'
+title='DFS Adoption Rates by Country, Wave 3'
+
+#plotting, wave 3
+colors <- brewer.pal(numberOfClasses, colorForScale)
+intervals <- classIntervals(varToPLot, numberOfClasses, style = "equal",dataPrecision=2)
+colorPallette <- findColours(intervals, colors)
+plot(subMap, col = colorPallette,main=title)
+legend(-65,10, legend = names(attr(colorPallette, "table")), y.intersp=0.5, x.intersp=0.5, fill = attr(colorPallette, "palette"), cex = 0.75, bty = "n")
+```
+
